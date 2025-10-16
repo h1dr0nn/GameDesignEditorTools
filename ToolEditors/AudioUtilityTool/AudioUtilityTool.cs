@@ -176,21 +176,23 @@ public partial class AudioUtilityTool : EditorWindow
             string path = AssetDatabase.GetAssetPath(obj);
             if (string.IsNullOrEmpty(path)) continue;
 
-            if (Directory.Exists(path))
+            string absFolder = MakeAbsolutePath(path);
+            if (!Directory.Exists(absFolder)) continue;
+
+            string[] files = Directory.GetFiles(absFolder, "*.*", SearchOption.AllDirectories);
+            foreach (var file in files)
             {
-                string[] files = Directory.GetFiles(path, "*.*", SearchOption.AllDirectories);
-                foreach (var file in files)
+                string ext = Path.GetExtension(file).ToLowerInvariant();
+                if (!IsAudioFile(ext)) continue;
+
+                string assetPath = MakeAssetRelativePath(file);
+                if (string.IsNullOrEmpty(assetPath)) continue;
+
+                var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
+                if (clip != null && !audioClips.Contains(clip))
                 {
-                    string ext = Path.GetExtension(file).ToLowerInvariant();
-                    if (IsAudioFile(ext))
-                    {
-                        var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(file);
-                        if (clip != null && !audioClips.Contains(clip))
-                        {
-                            audioClips.Add(clip);
-                            added++;
-                        }
-                    }
+                    audioClips.Add(clip);
+                    added++;
                 }
             }
         }
@@ -199,6 +201,25 @@ public partial class AudioUtilityTool : EditorWindow
             Debug.Log($"[AudioUtilityTool] Added {added} clips from selected folder(s).");
         else
             EditorUtility.DisplayDialog("No Audio Found", "Không tìm thấy file âm thanh nào trong thư mục đã chọn.", "OK");
+    }
+
+    private static string MakeAbsolutePath(string projectRelative)
+    {
+        if (string.IsNullOrEmpty(projectRelative)) return string.Empty;
+        var root = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length);
+        return Path.GetFullPath(Path.Combine(root, projectRelative)).Replace('\\', '/');
+    }
+
+    private static string MakeAssetRelativePath(string anyPath)
+    {
+        if (string.IsNullOrEmpty(anyPath)) return null;
+        var normalized = Path.GetFullPath(anyPath).Replace('\\', '/');
+        var root = Application.dataPath.Substring(0, Application.dataPath.Length - "Assets".Length).Replace('\\', '/');
+        if (!normalized.StartsWith(root))
+            return normalized.StartsWith("Assets/") ? normalized : null;
+
+        var relative = normalized.Substring(root.Length).TrimStart('/');
+        return relative.StartsWith("Assets") ? relative : null;
     }
 
     private static bool IsAudioFile(string ext)
