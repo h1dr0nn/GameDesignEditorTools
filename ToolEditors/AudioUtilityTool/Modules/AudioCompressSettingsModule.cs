@@ -24,6 +24,7 @@ public static class AudioCompressSettingsModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Audio Compression Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Adjust compression, load, and quality settings for selected audio clips.", MessageType.Info);
 
             compressionFormat = (AudioCompressionFormat)EditorGUILayout.EnumPopup("Compression Format", compressionFormat);
             quality = EditorGUILayout.Slider("Quality", quality, 0f, 1f);
@@ -35,11 +36,13 @@ public static class AudioCompressSettingsModule
 
             EditorGUILayout.Space(6);
             EditorGUILayout.LabelField("Apply To Platforms", EditorStyles.boldLabel);
-            GUILayout.BeginVertical("box");
-            applyToAndroid = EditorGUILayout.ToggleLeft("Android", applyToAndroid);
-            applyToiOS = EditorGUILayout.ToggleLeft("iOS", applyToiOS);
-            applyToStandalone = EditorGUILayout.ToggleLeft("Standalone", applyToStandalone);
-            GUILayout.EndVertical();
+
+            using (new EditorGUILayout.VerticalScope("box"))
+            {
+                applyToAndroid = EditorGUILayout.ToggleLeft("Android", applyToAndroid);
+                applyToiOS = EditorGUILayout.ToggleLeft("iOS", applyToiOS);
+                applyToStandalone = EditorGUILayout.ToggleLeft("Standalone", applyToStandalone);
+            }
 
             EditorGUILayout.Space(6);
             overwriteSource = EditorGUILayout.ToggleLeft("Apply To Source Files", overwriteSource);
@@ -101,7 +104,7 @@ public static class AudioCompressSettingsModule
             }
             catch (System.Exception ex)
             {
-                Debug.LogWarning($"[AudioCompress] ⚠️ Bỏ qua {clip.name} — lỗi: {ex.Message}");
+                Debug.LogWarning($"[AudioCompress] ⚠️ Skipped {clip.name} — error: {ex.Message}");
                 skipped++;
             }
         }

@@ -14,11 +14,13 @@ public partial class PrefabUtilityTool
     [SerializeField] private OrderMode splineOrderMode = OrderMode.Nearest;
 
     public enum OrderMode { AsIs, ByName, Nearest }
+
     private void DrawCreateSplineGUI()
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Create Spline From Prefabs", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Generate a spline based on the positions of selected prefabs in the scene.", MessageType.Info);
 
             splineName = EditorGUILayout.TextField("Spline Name", splineName);
             splineClosed = EditorGUILayout.Toggle("Closed", splineClosed);
@@ -27,7 +29,7 @@ public partial class PrefabUtilityTool
 
             EditorGUILayout.Space(8);
 
-            EditorGUI.BeginDisabledGroup(prefabs.Count < 2);
+            EditorGUI.BeginDisabledGroup(prefabs == null || prefabs.Count < 2);
             if (GUILayout.Button("Create Spline", GUILayout.Height(30)))
                 CreateSplineFromPrefabs(splineName, splineClosed, splineTangentMode, splineOrderMode);
             EditorGUI.EndDisabledGroup();
@@ -37,7 +39,7 @@ public partial class PrefabUtilityTool
     private void CreateSplineFromPrefabs(
         string splineName = "SplineFromPrefabs",
         bool closed = false,
-        TangentMode rotation = TangentMode.AutoSmooth,
+        TangentMode tangentMode = TangentMode.AutoSmooth,
         OrderMode orderMode = OrderMode.Nearest)
     {
         var points = prefabs
@@ -48,13 +50,14 @@ public partial class PrefabUtilityTool
 
         if (points.Count < 2)
         {
-            EditorUtility.DisplayDialog("Points To Spline", "Cần ít nhất 2 điểm hợp lệ để tạo spline.", "OK");
+            EditorUtility.DisplayDialog("Not Enough Points",
+                "At least two valid prefabs are required to create a spline.", "OK");
             return;
         }
 
         var orderedPoints = OrderPoints(points, orderMode);
-
         var rootName = string.IsNullOrWhiteSpace(splineName) ? "SplineFromPrefabs" : splineName.Trim();
+
         var rootGO = new GameObject(rootName);
         Undo.RegisterCreatedObjectUndo(rootGO, "Create Spline From Prefabs");
 
@@ -66,7 +69,7 @@ public partial class PrefabUtilityTool
         {
             var local = (float3)rootGO.transform.InverseTransformPoint(t.position);
             var knot = new BezierKnot(local) { Rotation = Quaternion.identity };
-            spline.Add(knot, rotation);
+            spline.Add(knot, tangentMode);
         }
 
         spline.Closed = closed;
@@ -74,7 +77,11 @@ public partial class PrefabUtilityTool
         Selection.activeGameObject = rootGO;
         EditorGUIUtility.PingObject(rootGO);
 
-        Debug.Log($"[PrefabUtilityTool] Created spline '{rootName}' with {orderedPoints.Count} points.");
+        Debug.Log($"[CreateSpline] ✅ Created spline '{rootName}' with {orderedPoints.Count} points.");
+
+        EditorUtility.DisplayDialog("Spline Created",
+            $"Spline Name: {rootName}\nPoints: {orderedPoints.Count}\nClosed: {closed}\nOrder: {orderMode}",
+            "OK");
     }
 
     private static List<Transform> OrderPoints(List<Transform> pts, OrderMode mode)
@@ -98,11 +105,13 @@ public partial class PrefabUtilityTool
         {
             Transform next = null;
             float best = float.MaxValue;
+
             foreach (var t in list)
             {
-                var d = (t.position - current.position).sqrMagnitude;
+                float d = (t.position - current.position).sqrMagnitude;
                 if (d < best) { best = d; next = t; }
             }
+
             ordered.Add(next);
             list.Remove(next);
             current = next;

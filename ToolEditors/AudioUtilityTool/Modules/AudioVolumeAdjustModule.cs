@@ -17,6 +17,8 @@ public static class AudioVolumeAdjustModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Volume Adjust (Gain)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Adjust overall volume of selected audio clips by applying gain (in decibels).", MessageType.Info);
+
             gainDb = EditorGUILayout.Slider("Gain (dB)", gainDb, -24f, 24f);
 
             EditorGUILayout.Space(4);
@@ -31,7 +33,7 @@ public static class AudioVolumeAdjustModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -50,7 +52,7 @@ public static class AudioVolumeAdjustModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nKhông thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -98,7 +100,12 @@ public static class AudioVolumeAdjustModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioGain] ⚠️ Bỏ qua {clip.name} — file đang bị lock hoặc sử dụng: {ioEx.Message}");
+                Debug.LogWarning($"[AudioGain] ⚠️ Skipped {clip.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioGain] ⚠️ Error processing {clip.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -107,7 +114,7 @@ public static class AudioVolumeAdjustModule
 
         EditorUtility.DisplayDialog("Gain Adjustment Complete",
             $"Processed: {clips.Count}\nAdjusted: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 }

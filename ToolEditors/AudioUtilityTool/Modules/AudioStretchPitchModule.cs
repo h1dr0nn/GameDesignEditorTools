@@ -23,7 +23,8 @@ public static class AudioStretchPitchModule
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
-            EditorGUILayout.LabelField("Stretch & Pitch", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Stretch & Pitch Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Stretch audio duration or adjust pitch. 'Independent' mode keeps pitch and timing separate, while 'Linked Resample' changes both together.", MessageType.Info);
 
             mode = (Mode)EditorGUILayout.EnumPopup("Mode", mode);
 
@@ -33,7 +34,7 @@ public static class AudioStretchPitchModule
                 stretchPercent = EditorGUILayout.Slider("Speed (%)", stretchPercent, 10f, 400f);
 
             using (new EditorGUI.DisabledScope(mode == Mode.LinkedResample))
-                pitchSemitones = EditorGUILayout.Slider("Pitch (semitones)", pitchSemitones, -24f, 24f);
+                pitchSemitones = EditorGUILayout.Slider("Pitch (Semitones)", pitchSemitones, -24f, 24f);
 
             EditorGUILayout.Space(4);
             windowSize = Mathf.ClosestPowerOfTwo(EditorGUILayout.IntSlider("Window Size", windowSize, 512, 8192));
@@ -51,7 +52,7 @@ public static class AudioStretchPitchModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -70,7 +71,7 @@ public static class AudioStretchPitchModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nKhông thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -113,9 +114,9 @@ public static class AudioStretchPitchModule
 
                     if (Mathf.Abs(pitchSemitones) > 0.001f)
                     {
-                        float p = Mathf.Pow(2f, pitchSemitones / 12f);
-                        processed = ResampleLinear(processed, channels, p);
-                        processed = TimeStretchPhaseVocoder(processed, channels, p, windowSize, hopRatio);
+                        float pitchFactor = Mathf.Pow(2f, pitchSemitones / 12f);
+                        processed = ResampleLinear(processed, channels, pitchFactor);
+                        processed = TimeStretchPhaseVocoder(processed, channels, pitchFactor, windowSize, hopRatio);
                     }
                 }
                 else
@@ -136,7 +137,12 @@ public static class AudioStretchPitchModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioStretchPitch] ⚠️ Bỏ qua {clip?.name} — file đang bị lock hoặc lỗi: {ioEx.Message}");
+                Debug.LogWarning($"[AudioStretchPitch] ⚠️ Skipped {clip?.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioStretchPitch] ⚠️ Error processing {clip?.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -144,8 +150,8 @@ public static class AudioStretchPitchModule
         AssetDatabase.Refresh();
 
         EditorUtility.DisplayDialog("Stretch & Pitch Complete",
-            $"Processed: {clips.Count}\nDone: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"Processed: {clips.Count}\nCompleted: {done}\nSkipped: {skipped}\n\n" +
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 
@@ -226,6 +232,7 @@ public static class AudioStretchPitchModule
     private static float[] ResampleLinear(float[] interleaved, int channels, float speed)
     {
         if (Mathf.Approximately(speed, 1f)) return (float[])interleaved.Clone();
+
         int inFrames = interleaved.Length / channels;
         int outFrames = Mathf.Max(1, Mathf.FloorToInt(inFrames / speed));
         float[] outInter = new float[outFrames * channels];
@@ -245,6 +252,7 @@ public static class AudioStretchPitchModule
                 outInter[i * channels + ch] = v;
             }
         }
+
         return outInter;
     }
 }

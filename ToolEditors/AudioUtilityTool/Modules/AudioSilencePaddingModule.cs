@@ -18,6 +18,8 @@ public static class AudioSilencePaddingModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Silence Padding Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Add silence (in milliseconds) to the start and/or end of audio clips.", MessageType.Info);
+
             padStartMs = EditorGUILayout.IntSlider("Pad Start (ms)", padStartMs, 0, 2000);
             padEndMs = EditorGUILayout.IntSlider("Pad End (ms)", padEndMs, 0, 2000);
 
@@ -33,7 +35,7 @@ public static class AudioSilencePaddingModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -52,7 +54,7 @@ public static class AudioSilencePaddingModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nKhông thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -102,7 +104,12 @@ public static class AudioSilencePaddingModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioPad] ⚠️ Bỏ qua {clip.name} — file đang bị lock hoặc sử dụng: {ioEx.Message}");
+                Debug.LogWarning($"[AudioPad] ⚠️ Skipped {clip.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioPad] ⚠️ Error processing {clip.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -111,7 +118,7 @@ public static class AudioSilencePaddingModule
 
         EditorUtility.DisplayDialog("Padding Complete",
             $"Processed: {clips.Count}\nPadded: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 }

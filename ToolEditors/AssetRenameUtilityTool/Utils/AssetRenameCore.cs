@@ -25,6 +25,84 @@ public static class AssetRenameCore
         public string Extension;
     }
 
+    public static void ExportCsvFromAssets(
+        List<UnityEngine.Object> assets,
+        AssetUtilityTool.AssetTypeFilter assetFilter,
+        ref TextAsset linkedCsv)
+    {
+        if (assets == null || assets.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Export CSV", "Asset list is empty.", "OK");
+            return;
+        }
+
+        var uniq = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var names = new List<(string guid, string path, string name, string ext, string type)>();
+
+        foreach (var a in assets.Where(a => a != null))
+        {
+            var path = AssetDatabase.GetAssetPath(a);
+            if (string.IsNullOrEmpty(path) || AssetDatabase.IsValidFolder(path)) continue;
+            if (!IsPathMatchesFilter(path, assetFilter)) continue;
+            if (!uniq.Add(path)) continue;
+
+            names.Add((
+                AssetDatabase.AssetPathToGUID(path),
+                path,
+                Path.GetFileNameWithoutExtension(path),
+                Path.GetExtension(path) ?? "",
+                GetAssetTypeName(path)
+            ));
+        }
+
+        if (names.Count == 0)
+        {
+            EditorUtility.DisplayDialog("Export CSV", "No valid asset found.", "OK");
+            return;
+        }
+
+        var savePath = EditorUtility.SaveFilePanelInProject(
+            "Save CSV Mapping",
+            "AssetRenameMapping.csv",
+            "csv",
+            "Columns: oldName,newName,guid,path,type"
+        );
+        if (string.IsNullOrEmpty(savePath)) return;
+
+        var sb = new StringBuilder();
+        char d = ',';
+        sb.Append("oldName").Append(d)
+          .Append("newName").Append(d)
+          .Append("guid").Append(d)
+          .Append("path").Append(d)
+          .Append("type").AppendLine();
+
+        foreach (var n in names.OrderBy(x => x.name, StringComparer.OrdinalIgnoreCase))
+        {
+            sb.Append(CsvEscape(n.name, d)).Append(d)
+              .Append("").Append(d)
+              .Append(CsvEscape(n.guid, d)).Append(d)
+              .Append(CsvEscape(n.path, d)).Append(d)
+              .Append(CsvEscape(n.type, d)).AppendLine();
+        }
+
+        try
+        {
+            File.WriteAllText(savePath, sb.ToString(), new UTF8Encoding(true));
+            AssetDatabase.ImportAsset(savePath);
+            var asset = AssetDatabase.LoadAssetAtPath<TextAsset>(savePath);
+            linkedCsv = asset;
+            AssetDatabase.SaveAssets();
+            EditorGUIUtility.PingObject(asset);
+            EditorUtility.DisplayDialog("Export CSV", $"Exported {names.Count} rows and auto-linked CSV Mapping.", "OK");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[AssetRenameCore] ExportCsvFromAssets failed: {e.Message}");
+            EditorUtility.DisplayDialog("Export CSV", "Failed to save CSV file.", "OK");
+        }
+    }
+
     public static List<RenameResult> ScanPreview(
         IEnumerable<UnityEngine.Object> assets,
         TextAsset csvMapping,
@@ -33,7 +111,7 @@ public static class AssetRenameCore
         bool caseInsensitive,
         bool autoDetectCsv,
         bool autoSanitize,
-        AssetRenameUtilityTool.AssetTypeFilter assetFilter,
+        AssetUtilityTool.AssetTypeFilter assetFilter,
         bool matchByGuid, bool matchByPath, bool matchByName)
     {
         var results = new List<RenameResult>();
@@ -304,7 +382,7 @@ public static class AssetRenameCore
         return (false, null, null);
     }
 
-    public static bool IsPathMatchesFilter(string path, AssetRenameUtilityTool.AssetTypeFilter filter)
+    public static bool IsPathMatchesFilter(string path, AssetUtilityTool.AssetTypeFilter filter)
     {
         if (string.IsNullOrEmpty(path)) return false;
         var ext = (Path.GetExtension(path) ?? "").ToLowerInvariant();
@@ -312,21 +390,21 @@ public static class AssetRenameCore
 
         switch (filter)
         {
-            case AssetRenameUtilityTool.AssetTypeFilter.All:
+            case AssetUtilityTool.AssetTypeFilter.All:
                 return true;
-            case AssetRenameUtilityTool.AssetTypeFilter.Prefab:
-                return string.Equals(ext, ".prefab", StringComparison.OrdinalIgnoreCase);
-            case AssetRenameUtilityTool.AssetTypeFilter.Audio:
+            case AssetUtilityTool.AssetTypeFilter.Prefab:
+                return ext == ".prefab";
+            case AssetUtilityTool.AssetTypeFilter.Audio:
                 return type == typeof(AudioClip) || ext is ".wav" or ".ogg" or ".mp3";
-            case AssetRenameUtilityTool.AssetTypeFilter.Image:
+            case AssetUtilityTool.AssetTypeFilter.Image:
                 return type == typeof(Texture2D) || ext is ".png" or ".jpg" or ".jpeg";
-            case AssetRenameUtilityTool.AssetTypeFilter.Material:
+            case AssetUtilityTool.AssetTypeFilter.Material:
                 return type == typeof(Material);
-            case AssetRenameUtilityTool.AssetTypeFilter.ScriptableObject:
+            case AssetUtilityTool.AssetTypeFilter.ScriptableObject:
                 return typeof(ScriptableObject).IsAssignableFrom(type);
-            case AssetRenameUtilityTool.AssetTypeFilter.Scene:
+            case AssetUtilityTool.AssetTypeFilter.Scene:
                 return ext == ".unity";
-            case AssetRenameUtilityTool.AssetTypeFilter.Text:
+            case AssetUtilityTool.AssetTypeFilter.Text:
                 return type == typeof(TextAsset) || ext is ".txt" or ".csv" or ".json";
             default:
                 return true;

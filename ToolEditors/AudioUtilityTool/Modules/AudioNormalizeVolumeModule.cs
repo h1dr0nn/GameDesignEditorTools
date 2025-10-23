@@ -17,6 +17,8 @@ public static class AudioNormalizeVolumeModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Normalize Volume Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Normalize the peak volume of selected audio clips to a target dB value.", MessageType.Info);
+
             targetPeakDb = EditorGUILayout.Slider("Target Peak (dB)", targetPeakDb, -12f, 0f);
 
             EditorGUILayout.Space(4);
@@ -31,7 +33,7 @@ public static class AudioNormalizeVolumeModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -50,7 +52,7 @@ public static class AudioNormalizeVolumeModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nKhông thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -83,8 +85,14 @@ public static class AudioNormalizeVolumeModule
                 clip.GetData(data, 0);
 
                 float peak = 0f;
-                foreach (var s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
-                if (peak < 1e-6f) { skipped++; continue; }
+                foreach (var s in data)
+                    peak = Mathf.Max(peak, Mathf.Abs(s));
+
+                if (peak < 1e-6f)
+                {
+                    skipped++;
+                    continue;
+                }
 
                 float currentDb = 20f * Mathf.Log10(peak);
                 float diff = targetPeakDb - currentDb;
@@ -105,7 +113,12 @@ public static class AudioNormalizeVolumeModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioNormalize] ⚠️ Bỏ qua {clip.name} — file đang bị lock hoặc sử dụng: {ioEx.Message}");
+                Debug.LogWarning($"[AudioNormalize] ⚠️ Skipped {clip.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioNormalize] ⚠️ Error processing {clip.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -114,7 +127,7 @@ public static class AudioNormalizeVolumeModule
 
         EditorUtility.DisplayDialog("Normalize Complete",
             $"Processed: {clips.Count}\nNormalized: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 }
