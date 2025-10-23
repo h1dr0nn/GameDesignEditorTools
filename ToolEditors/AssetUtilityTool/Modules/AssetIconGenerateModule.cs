@@ -47,7 +47,7 @@ public static class AssetIconGenerateModule
 
             if (GUILayout.Button("Open Output Folder", GUILayout.Height(32)))
             {
-                var abs = AssetIconGeneratorCore.MakeAbsolute(outputFolder);
+                var abs = AssetIconGeneratorUtils.MakeAbsolute(outputFolder);
                 Directory.CreateDirectory(abs);
                 EditorUtility.RevealInFinder(abs);
             }
@@ -64,6 +64,7 @@ public static class AssetIconGenerateModule
             orbitEuler = EditorGUILayout.Vector2Field("Orbit (X,Y)", orbitEuler);
             padding = EditorGUILayout.Slider("Padding", padding, 1.0f, 2.0f);
             camFov = EditorGUILayout.Slider("Camera FOV", camFov, 10f, 60f);
+            AssetIconRenderer.framingTweak = EditorGUILayout.Slider("Framing Tweak", AssetIconRenderer.framingTweak, 0.5f, 1.5f);
         }
     }
 
@@ -89,10 +90,10 @@ public static class AssetIconGenerateModule
                 outputFolder = EditorGUILayout.TextField("Folder", outputFolder);
                 if (GUILayout.Button("Pick...", GUILayout.Width(64)))
                 {
-                    var abs = EditorUtility.OpenFolderPanel("Select Output Folder", AssetIconGeneratorCore.MakeAbsolute(outputFolder), "");
+                    var abs = EditorUtility.OpenFolderPanel("Select Output Folder", AssetIconGeneratorUtils.MakeAbsolute(outputFolder), "");
                     if (!string.IsNullOrEmpty(abs))
                     {
-                        var rel = AssetIconGeneratorCore.MakeRelativeToAssets(abs);
+                        var rel = AssetIconGeneratorUtils.MakeRelativeToAssets(abs);
                         if (!string.IsNullOrEmpty(rel)) outputFolder = rel;
                     }
                 }
