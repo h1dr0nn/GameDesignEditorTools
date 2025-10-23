@@ -8,11 +8,8 @@ public class AssetUtilityTool : EditorWindow
 {
     public enum ModuleType
     {
-        IconGenerator,
         RenameAssets,
-        // GenerateIcons,
-        // CompressTextures,
-        // Add more modules here...
+        IconGenerator,
     }
 
     public enum AssetTypeFilter
@@ -20,10 +17,10 @@ public class AssetUtilityTool : EditorWindow
         All, Prefab, Audio, Image, Material, ScriptableObject, Model, Scene, Shader, Animation, Text, Other
     }
 
-    private ModuleType currentModule = ModuleType.RenameAssets;
-    private AssetTypeFilter assetFilter = AssetTypeFilter.All;
+    [SerializeField] private ModuleType currentModule = ModuleType.RenameAssets;
+    [SerializeField] private AssetTypeFilter assetFilter = AssetTypeFilter.All;
+    [SerializeField] private List<Object> selectedAssets = new();
 
-    private readonly List<Object> selectedAssets = new();
     private Vector2 _scrollMain, _scrollAssets;
 
     [MenuItem("Tools/Game Design/Asset Utility Tool")]
@@ -50,7 +47,7 @@ public class AssetUtilityTool : EditorWindow
         }
 
         EditorGUILayout.Space(6);
-        EditorGUILayout.HelpBox("Drag & drop assets (excluding folders) or use Add From Selection / Folder. Import a CSV mapping to batch rename assets.", MessageType.Info);
+        EditorGUILayout.HelpBox("Drag & drop assets (excluding folders) or use Add From Selection / Folder. These assets will be used by the selected module below.", MessageType.Info);
         EditorGUILayout.Space(4);
 
         DrawAssetList();
@@ -80,12 +77,17 @@ public class AssetUtilityTool : EditorWindow
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Assets", EditorStyles.boldLabel);
+
+            var so = new SerializedObject(this);
+            var prop = so.FindProperty(nameof(selectedAssets));
+
             using (var sv = new EditorGUILayout.ScrollViewScope(_scrollAssets, GUILayout.MinHeight(160)))
             {
                 _scrollAssets = sv.scrollPosition;
-                for (int i = 0; i < selectedAssets.Count; i++)
-                    selectedAssets[i] = EditorGUILayout.ObjectField(selectedAssets[i], typeof(Object), false);
+                EditorGUILayout.PropertyField(prop, includeChildren: true);
             }
+
+            so.ApplyModifiedProperties();
 
             float buttonWidth = (EditorGUIUtility.currentViewWidth - 100f) / 2f;
             float buttonHeight = 24f;
