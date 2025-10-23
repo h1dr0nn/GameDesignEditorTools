@@ -19,6 +19,7 @@ public static class AudioTrimSilenceModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Trim Silence Settings", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Remove silent parts from the beginning and end of audio clips. Optionally apply fade-in/out and normalization.", MessageType.Info);
 
             thresholdDb = EditorGUILayout.Slider("Threshold (dB)", thresholdDb, -80f, 0f);
             fadeInMs = EditorGUILayout.IntField("Fade In (ms)", fadeInMs);
@@ -37,7 +38,7 @@ public static class AudioTrimSilenceModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -56,7 +57,7 @@ public static class AudioTrimSilenceModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nHành động này không thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -104,7 +105,12 @@ public static class AudioTrimSilenceModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioTrim] ⚠️ Bỏ qua {clip.name} — file đang bị lock hoặc sử dụng: {ioEx.Message}");
+                Debug.LogWarning($"[AudioTrim] ⚠️ Skipped {clip.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioTrim] ⚠️ Error processing {clip.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -113,7 +119,7 @@ public static class AudioTrimSilenceModule
 
         EditorUtility.DisplayDialog("Trim Complete",
             $"Processed: {clips.Count}\nTrimmed: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 
@@ -144,8 +150,10 @@ public static class AudioTrimSilenceModule
         float peak = 0f;
         foreach (var s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
         if (peak < 1e-6f) return;
+
         float gain = 1f / peak;
-        for (int i = 0; i < data.Length; i++) data[i] *= gain;
+        for (int i = 0; i < data.Length; i++)
+            data[i] *= gain;
     }
 
     private static void ApplyFade(float[] data, int frequency, int channels, int fadeInMs, int fadeOutMs)

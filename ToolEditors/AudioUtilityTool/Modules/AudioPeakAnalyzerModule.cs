@@ -9,12 +9,15 @@ public static class AudioPeakAnalyzerModule
     private static Color peakColor = Color.red;
     private static float displayHeight = 100f;
     private static Vector2 scroll;
+    private static List<PeakResult> lastResults;
 
     public static void DrawGUI(List<AudioClip> clips)
     {
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Peak Analyzer", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Visualize the waveform and identify peak values (in dB) for each selected audio clip.", MessageType.Info);
+
             waveformColor = EditorGUILayout.ColorField("Waveform Color", waveformColor);
             peakColor = EditorGUILayout.ColorField("Peak Marker Color", peakColor);
             displayHeight = EditorGUILayout.Slider("Display Height", displayHeight, 50, 300);
@@ -30,14 +33,13 @@ public static class AudioPeakAnalyzerModule
         }
     }
 
-    private static List<PeakResult> lastResults;
-
     private static void Analyze(List<AudioClip> clips)
     {
         lastResults = new List<PeakResult>();
         foreach (var clip in clips)
         {
             if (clip == null) continue;
+
             float[] data = new float[clip.samples * clip.channels];
             clip.GetData(data, 0);
 
@@ -57,13 +59,13 @@ public static class AudioPeakAnalyzerModule
             lastResults.Add(new PeakResult
             {
                 clip = clip,
+                data = data,
                 peakValue = peak,
                 peakDb = peakDb,
-                peakIndex = peakIndex,
-                data = data
+                peakIndex = peakIndex
             });
 
-            Debug.Log($"[PeakAnalyzer] {clip.name} peak {peakDb:F2} dB at sample {peakIndex}");
+            Debug.Log($"[AudioPeakAnalyzer] {clip.name} peak {peakDb:F2} dB at sample {peakIndex}");
         }
     }
 

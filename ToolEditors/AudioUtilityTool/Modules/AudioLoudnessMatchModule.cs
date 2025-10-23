@@ -17,6 +17,8 @@ public static class AudioLoudnessMatchModule
         using (new EditorGUILayout.VerticalScope("box"))
         {
             EditorGUILayout.LabelField("Loudness Match (LUFS)", EditorStyles.boldLabel);
+            EditorGUILayout.HelpBox("Normalize loudness levels of selected audio clips to a target LUFS value.", MessageType.Info);
+
             targetLUFS = EditorGUILayout.Slider("Target LUFS", targetLUFS, -30f, -8f);
 
             EditorGUILayout.Space(4);
@@ -31,7 +33,7 @@ public static class AudioLoudnessMatchModule
             }
             else
             {
-                EditorGUILayout.HelpBox("Overwrite đang bật → suffix và folder sẽ bị bỏ qua.", MessageType.Info);
+                EditorGUILayout.HelpBox("Overwrite is enabled — suffix and folder will be ignored.", MessageType.Warning);
             }
 
             EditorGUILayout.Space(8);
@@ -50,7 +52,7 @@ public static class AudioLoudnessMatchModule
         {
             bool confirm = EditorUtility.DisplayDialog(
                 "Confirm Overwrite",
-                "Bạn sắp GHI ĐÈ lên file âm thanh gốc!\nKhông thể hoàn tác.\n\nTiếp tục?",
+                "You are about to OVERWRITE original audio files!\nThis action cannot be undone.\n\nContinue?",
                 "Yes, overwrite", "Cancel");
             if (!confirm) return;
         }
@@ -70,6 +72,7 @@ public static class AudioLoudnessMatchModule
                 ? Path.GetDirectoryName(srcPath)
                 : (writeNextToSource ? Path.GetDirectoryName(srcPath)
                                      : AssetDatabase.GetAssetPath(outputFolder));
+
             if (string.IsNullOrEmpty(dir)) dir = "Assets";
 
             string baseName = Path.GetFileNameWithoutExtension(srcPath);
@@ -101,7 +104,12 @@ public static class AudioLoudnessMatchModule
             }
             catch (IOException ioEx)
             {
-                Debug.LogWarning($"[AudioLUFS] ⚠️ Bỏ qua {clip.name} — file đang bị lock hoặc sử dụng: {ioEx.Message}");
+                Debug.LogWarning($"[AudioLUFS] ⚠️ Skipped {clip.name} — file locked or in use: {ioEx.Message}");
+                skipped++;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[AudioLUFS] ⚠️ Error processing {clip.name}: {ex.Message}");
                 skipped++;
             }
         }
@@ -110,7 +118,7 @@ public static class AudioLoudnessMatchModule
 
         EditorUtility.DisplayDialog("Loudness Match Complete",
             $"Processed: {clips.Count}\nMatched: {done}\nSkipped: {skipped}\n\n" +
-            $"{(overwriteSource ? "⚠️ Files were overwritten!" : "")}",
+            $"{(overwriteSource ? "⚠️ Files were overwritten!" : string.Empty)}",
             "OK");
     }
 
@@ -119,6 +127,7 @@ public static class AudioLoudnessMatchModule
         double sumSq = 0;
         for (int i = 0; i < samples.Length; i++)
             sumSq += samples[i] * samples[i];
+
         double rms = Mathf.Sqrt((float)(sumSq / samples.Length));
         return 20f * Mathf.Log10((float)rms + 1e-6f) - 0.691f;
     }
