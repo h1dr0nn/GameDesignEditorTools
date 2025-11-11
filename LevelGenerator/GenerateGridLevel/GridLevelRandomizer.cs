@@ -30,6 +30,8 @@ public static class GridLevelRandomizer
         // 4️. Balance difficulty
         BalanceGridHandler.Balance(input, visible, hidden);
 
+        EnsureSolvableGridHandler.Ensure(visible, hidden);
+
         // 5️. Validate final solvability
         ValidateGridHandler.Validate(input, visible, hidden);
 
