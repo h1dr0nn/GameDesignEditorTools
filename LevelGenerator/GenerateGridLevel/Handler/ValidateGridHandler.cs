@@ -49,17 +49,49 @@ public static class ValidateGridHandler
             .ToList();
 
         var grouped = allCells.GroupBy(c => c.TopicID).ToList();
-        bool allComplete = grouped.All(g => g.Count() == 4);
+        var allPassed = true;
 
-        if (!allComplete)
+        foreach (var group in grouped)
         {
-            var incomplete = grouped.Where(g => g.Count() != 4)
-                .Select(g => $"{g.Key}({g.Count()})").ToList();
-            Debug.LogWarning($"[GridGen] ❌ Incomplete Topics: {string.Join(", ", incomplete)}");
+            var topicId = group.Key;
+            var tiles = group.ToList();
+
+            // Kiểm tra đủ 4 tile
+            if (tiles.Count != 4)
+            {
+                Debug.LogWarning($"[GridGen] ❌ Topic {topicId} có {tiles.Count} tile (thiếu hoặc dư).");
+                allPassed = false;
+                continue;
+            }
+
+            // Lấy list TileID hợp lệ
+            var tileIds = tiles.Select(t => t.TileID).ToList();
+
+            // Kiểm tra trùng
+            var dup = tileIds.GroupBy(id => id).Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+            if (dup.Count > 0)
+            {
+                Debug.LogWarning($"[GridGen] ❌ Topic {topicId} có TileID trùng: {string.Join(",", dup)}");
+                allPassed = false;
+            }
+
+            // Kiểm tra có đủ 1–4
+            var validSet = new HashSet<string> { "1", "2", "3", "4" };
+            if (!validSet.SetEquals(tileIds))
+            {
+                var missing = validSet.Except(tileIds).ToList();
+                var extra = tileIds.Except(validSet).ToList();
+                Debug.LogWarning($"[GridGen] ⚠️ Topic {topicId} ID sai: thiếu [{string.Join(",", missing)}], dư [{string.Join(",", extra)}]");
+                allPassed = false;
+            }
         }
 
-        return allComplete;
+        if (allPassed)
+            Debug.Log("[GridGen] ✅ Tất cả Topic đều hợp lệ (4 tile, ID 1–4, không trùng).");
+
+        return allPassed;
     }
+
 
     private static bool CheckSolvable(List<List<GridCell>> visible, List<List<GridCell>> hidden)
     {
