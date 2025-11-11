@@ -69,57 +69,142 @@ public static class ValidateGridHandler
             return false;
         }
 
-        var flatVisible = Flatten(visible);
-        var activeHidden = new List<List<GridCell>>(hidden);
-        var mergeOutputs = Flatten(activeHidden)
-            .Where(c => c.IsReservedOutput && !string.IsNullOrEmpty(c.MergeFromTopicID))
-            .ToList();
+        var available = Flatten(visible)
+            .GroupBy(c => c.TopicID)
+            .ToDictionary(g => g.Key, g => g.Count());
 
-        if (mergeOutputs.Count == 0)
+        var pendingHiddenRows = BuildHiddenRowQueue(hidden);
+        if (pendingHiddenRows.Count == 0)
             return true;
 
-        var resolved = new HashSet<string>();
         int safety = 0;
 
-        while (activeHidden.Count > 0 && safety++ < 200)
+        while (pendingHiddenRows.Count > 0 && safety++ < 400)
         {
-            bool merged = false;
-            var pending = mergeOutputs.Where(m => !resolved.Contains(m.MergeFromTopicID)).ToList();
+            var mergeableTopics = available
+                .Where(kv => kv.Value >= 4)
+                .Select(kv => kv.Key)
+                .ToList();
 
-            foreach (var merge in pending)
+            if (mergeableTopics.Count == 0)
+                break;
+
+            string selectedTopic = null;
+            int bestIndex = int.MaxValue;
+
+            foreach (var topic in mergeableTopics)
             {
-                var topicTiles = flatVisible.Where(c => c.TopicID == merge.MergeFromTopicID).ToList();
-                if (topicTiles.Count >= 4)
+                int idx = pendingHiddenRows.FindIndex(r => r.RequiredTopic == topic);
+                if (idx >= 0 && idx < bestIndex)
                 {
-                    flatVisible.RemoveAll(c => c.TopicID == merge.MergeFromTopicID);
-                    flatVisible.Insert(0, new GridCell
-                    {
-                        TopicID = merge.TopicID,
-                        TopicName = merge.TopicName,
-                        TileID = merge.TileID,
-                        TileName = merge.TileName,
-                        IsReservedOutput = merge.IsReservedOutput,
-                        MergeFromTopicID = merge.MergeFromTopicID
-                    });
-
-                    var hiddenRow = activeHidden.FirstOrDefault(r => r.Any(c => c.MergeFromTopicID == merge.MergeFromTopicID));
-                    if (hiddenRow != null)
-                        activeHidden.Remove(hiddenRow);
-
-                    resolved.Add(merge.MergeFromTopicID);
-                    merged = true;
-                    break;
+                    bestIndex = idx;
+                    selectedTopic = topic;
                 }
             }
 
-            if (!merged) break;
+            if (selectedTopic == null)
+            {
+                selectedTopic = mergeableTopics[0];
+            }
 
-            mergeOutputs = Flatten(activeHidden)
-                .Where(c => c.IsReservedOutput && !string.IsNullOrEmpty(c.MergeFromTopicID))
-                .ToList();
+            available[selectedTopic] -= 4;
+            if (available[selectedTopic] <= 0)
+                available.Remove(selectedTopic);
+
+            HiddenRowState droppedRow = null;
+
+            if (bestIndex != int.MaxValue)
+            {
+                droppedRow = pendingHiddenRows[bestIndex];
+                pendingHiddenRows.RemoveAt(bestIndex);
+            }
+            else
+            {
+                int passiveIndex = pendingHiddenRows.FindIndex(r => string.IsNullOrEmpty(r.RequiredTopic));
+                if (passiveIndex >= 0)
+                {
+                    droppedRow = pendingHiddenRows[passiveIndex];
+                    pendingHiddenRows.RemoveAt(passiveIndex);
+                }
+            }
+
+            if (droppedRow != null)
+            {
+                foreach (var cell in droppedRow.Cells)
+                {
+                    if (string.IsNullOrEmpty(cell.TopicID))
+                        continue;
+
+                    if (!available.TryGetValue(cell.TopicID, out var count))
+                        count = 0;
+
+                    available[cell.TopicID] = count + 1;
+                }
+            }
         }
 
-        return activeHidden.Count == 0;
+        if (pendingHiddenRows.Count > 0)
+            return false;
+
+        int cleanupSafety = 0;
+        bool progress;
+
+        do
+        {
+            progress = false;
+            var residualTopics = available
+                .Where(kv => kv.Value >= 4)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            if (residualTopics.Count == 0)
+                break;
+
+            foreach (var topic in residualTopics)
+            {
+                available[topic] -= 4;
+                if (available[topic] <= 0)
+                    available.Remove(topic);
+                progress = true;
+            }
+        }
+        while (progress && cleanupSafety++ < 200);
+
+        return available.Count == 0;
+    }
+
+    private class HiddenRowState
+    {
+        public string RequiredTopic;
+        public List<GridCell> Cells;
+    }
+
+    private static List<HiddenRowState> BuildHiddenRowQueue(List<List<GridCell>> hidden)
+    {
+        var result = new List<HiddenRowState>();
+        if (hidden == null)
+            return result;
+
+        foreach (var row in hidden)
+        {
+            if (row == null)
+                continue;
+
+            var rowCopy = row.Select(c => c).ToList();
+            bool hasContent = rowCopy.Any(c => !string.IsNullOrEmpty(c.TopicID));
+            if (!hasContent)
+                continue;
+
+            var mergeCell = rowCopy.FirstOrDefault(c => c.IsReservedOutput && !string.IsNullOrEmpty(c.MergeFromTopicID));
+
+            result.Add(new HiddenRowState
+            {
+                RequiredTopic = mergeCell.MergeFromTopicID,
+                Cells = rowCopy
+            });
+        }
+
+        return result;
     }
 
     private static float CalculateDifficultyScore(
