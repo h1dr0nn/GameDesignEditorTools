@@ -2,90 +2,93 @@
 using UnityEditor;
 using UnityEngine;
 
-public partial class PrefabUtilityTool
+namespace h1dr0n.EditorTools
 {
-    private enum ColliderType { Mesh, Box, Sphere, Capsule }
-
-    [SerializeField] private ColliderType colliderType = ColliderType.Mesh;
-    [SerializeField] private bool convexMeshCollider = true;
-
-    private void DrawAddColliderGUI()
+    public partial class PrefabUtilityTool
     {
-        using (new EditorGUILayout.VerticalScope("box"))
+        private enum ColliderType { Mesh, Box, Sphere, Capsule }
+
+        [SerializeField] private ColliderType colliderType = ColliderType.Mesh;
+        [SerializeField] private bool convexMeshCollider = true;
+
+        private void DrawAddColliderGUI()
         {
-            EditorGUILayout.LabelField("Add Collider From Mesh", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Add colliders to selected prefabs based on their mesh shape.", MessageType.Info);
-
-            colliderType = (ColliderType)EditorGUILayout.EnumPopup("Collider Type", colliderType);
-            if (colliderType == ColliderType.Mesh)
-                convexMeshCollider = EditorGUILayout.Toggle("Convex Mesh", convexMeshCollider);
-
-            EditorGUILayout.Space(6);
-
-            EditorGUI.BeginDisabledGroup(prefabs == null || prefabs.Count == 0);
-            using (new EditorGUILayout.HorizontalScope())
+            using (new EditorGUILayout.VerticalScope("box"))
             {
-                if (GUILayout.Button("Clear All Colliders", GUILayout.Height(26)))
-                {
-                    foreach (var p in prefabs)
-                        ClearColliders(p);
-                    Debug.Log("[AddCollider] ✅ Cleared all colliders from selected prefabs.");
-                }
+                EditorGUILayout.LabelField("Add Collider From Mesh", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("Add colliders to selected prefabs based on their mesh shape.", MessageType.Info);
 
-                if (GUILayout.Button("Add Colliders", GUILayout.Height(26)))
+                colliderType = (ColliderType)EditorGUILayout.EnumPopup("Collider Type", colliderType);
+                if (colliderType == ColliderType.Mesh)
+                    convexMeshCollider = EditorGUILayout.Toggle("Convex Mesh", convexMeshCollider);
+
+                EditorGUILayout.Space(6);
+
+                EditorGUI.BeginDisabledGroup(prefabs == null || prefabs.Count == 0);
+                using (new EditorGUILayout.HorizontalScope())
                 {
-                    foreach (var p in prefabs)
-                        AddColliderToGO(p);
-                    Debug.Log("[AddCollider] ✅ Added colliders to all selected prefabs.");
+                    if (GUILayout.Button("Clear All Colliders", GUILayout.Height(26)))
+                    {
+                        foreach (var p in prefabs)
+                            ClearColliders(p);
+                        Debug.Log("[AddCollider] ✅ Cleared all colliders from selected prefabs.");
+                    }
+
+                    if (GUILayout.Button("Add Colliders", GUILayout.Height(26)))
+                    {
+                        foreach (var p in prefabs)
+                            AddColliderToGO(p);
+                        Debug.Log("[AddCollider] ✅ Added colliders to all selected prefabs.");
+                    }
                 }
+                EditorGUI.EndDisabledGroup();
             }
-            EditorGUI.EndDisabledGroup();
         }
-    }
 
-    private void ClearColliders(GameObject go)
-    {
-        if (!go) return;
-        foreach (var col in go.GetComponentsInChildren<Collider>(true))
-            Undo.DestroyObjectImmediate(col);
-    }
-
-    private void AddColliderToGO(GameObject go)
-    {
-        if (!go) return;
-
-        MeshFilter mf = go.GetComponentInChildren<MeshFilter>();
-        if (mf == null || mf.sharedMesh == null) return;
-
-        var mesh = mf.sharedMesh;
-        var bounds = mesh.bounds;
-
-        switch (colliderType)
+        private void ClearColliders(GameObject go)
         {
-            case ColliderType.Mesh:
-                var mc = Undo.AddComponent<MeshCollider>(go);
-                mc.sharedMesh = mesh;
-                mc.convex = convexMeshCollider;
-                break;
+            if (!go) return;
+            foreach (var col in go.GetComponentsInChildren<Collider>(true))
+                Undo.DestroyObjectImmediate(col);
+        }
 
-            case ColliderType.Box:
-                var bc = Undo.AddComponent<BoxCollider>(go);
-                bc.center = bounds.center;
-                bc.size = bounds.size;
-                break;
+        private void AddColliderToGO(GameObject go)
+        {
+            if (!go) return;
 
-            case ColliderType.Sphere:
-                var sc = Undo.AddComponent<SphereCollider>(go);
-                sc.center = bounds.center;
-                sc.radius = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
-                break;
+            MeshFilter mf = go.GetComponentInChildren<MeshFilter>();
+            if (mf == null || mf.sharedMesh == null) return;
 
-            case ColliderType.Capsule:
-                var cc = Undo.AddComponent<CapsuleCollider>(go);
-                cc.center = bounds.center;
-                cc.height = bounds.size.y;
-                cc.radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
-                break;
+            var mesh = mf.sharedMesh;
+            var bounds = mesh.bounds;
+
+            switch (colliderType)
+            {
+                case ColliderType.Mesh:
+                    var mc = Undo.AddComponent<MeshCollider>(go);
+                    mc.sharedMesh = mesh;
+                    mc.convex = convexMeshCollider;
+                    break;
+
+                case ColliderType.Box:
+                    var bc = Undo.AddComponent<BoxCollider>(go);
+                    bc.center = bounds.center;
+                    bc.size = bounds.size;
+                    break;
+
+                case ColliderType.Sphere:
+                    var sc = Undo.AddComponent<SphereCollider>(go);
+                    sc.center = bounds.center;
+                    sc.radius = Mathf.Max(bounds.extents.x, bounds.extents.y, bounds.extents.z);
+                    break;
+
+                case ColliderType.Capsule:
+                    var cc = Undo.AddComponent<CapsuleCollider>(go);
+                    cc.center = bounds.center;
+                    cc.height = bounds.size.y;
+                    cc.radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
+                    break;
+            }
         }
     }
 }
