@@ -3,15 +3,18 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-[System.Serializable]
-public class ScenePresetItem
+namespace h1dr0n.EditorTools
 {
-    public string name = "New Preset";
-    public List<SceneAsset> scenes = new List<SceneAsset>();
-}
+    [System.Serializable]
+    public class ScenePresetItem
+    {
+        public string name = "New Preset";
+        public List<SceneAsset> scenes = new List<SceneAsset>();
+    }
 
-public class ScenePresetDataSO : ScriptableObject
-{
-    public List<ScenePresetItem> presets = new List<ScenePresetItem>();
+    public class ScenePresetDataSO : ScriptableObject
+    {
+        public List<ScenePresetItem> presets = new List<ScenePresetItem>();
+    }
 }
 #endif

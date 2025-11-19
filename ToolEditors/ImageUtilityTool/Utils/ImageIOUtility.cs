@@ -3,59 +3,62 @@ using UnityEditor;
 using UnityEngine;
 using System.IO;
 
-public static class ImageIOUtility
+namespace h1dr0n.EditorTools
 {
-    public static bool SaveTexture(Texture2D tex, string path, string format = "png", int quality = 85)
+    public static class ImageIOUtility
     {
-        try
+        public static bool SaveTexture(Texture2D tex, string path, string format = "png", int quality = 85)
         {
-            byte[] bytes;
-            format = format.ToLowerInvariant();
-
-            switch (format)
+            try
             {
-                case "jpg":
-                case "jpeg":
-                    bytes = tex.EncodeToJPG(quality);
-                    break;
+                byte[] bytes;
+                format = format.ToLowerInvariant();
 
-                case "png":
-                    bytes = tex.EncodeToPNG();
-                    break;
+                switch (format)
+                {
+                    case "jpg":
+                    case "jpeg":
+                        bytes = tex.EncodeToJPG(quality);
+                        break;
 
-                default:
-                    Debug.LogWarning($"[ImageIO] ❌ Unsupported format '{format}', fallback to PNG.");
-                    bytes = tex.EncodeToPNG();
-                    break;
+                    case "png":
+                        bytes = tex.EncodeToPNG();
+                        break;
+
+                    default:
+                        Debug.LogWarning($"[ImageIO] ❌ Unsupported format '{format}', fallback to PNG.");
+                        bytes = tex.EncodeToPNG();
+                        break;
+                }
+
+                File.WriteAllBytes(path, bytes);
+                return true;
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"[ImageIO] ⚠️ Error saving '{path}': {ex.Message}");
+                return false;
+            }
+        }
+
+        public static Texture2D LoadTexture(string path)
+        {
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[ImageIO] File not found: {path}");
+                return null;
             }
 
-            File.WriteAllBytes(path, bytes);
-            return true;
+            byte[] data = File.ReadAllBytes(path);
+            Texture2D tex = new Texture2D(2, 2);
+            tex.LoadImage(data);
+            return tex;
         }
-        catch (System.Exception ex)
+
+        public static void RefreshAssetDatabase()
         {
-            Debug.LogError($"[ImageIO] ⚠️ Error saving '{path}': {ex.Message}");
-            return false;
+            AssetDatabase.Refresh();
         }
-    }
-
-    public static Texture2D LoadTexture(string path)
-    {
-        if (!File.Exists(path))
-        {
-            Debug.LogWarning($"[ImageIO] File not found: {path}");
-            return null;
-        }
-
-        byte[] data = File.ReadAllBytes(path);
-        Texture2D tex = new Texture2D(2, 2);
-        tex.LoadImage(data);
-        return tex;
-    }
-
-    public static void RefreshAssetDatabase()
-    {
-        AssetDatabase.Refresh();
     }
 }
 #endif

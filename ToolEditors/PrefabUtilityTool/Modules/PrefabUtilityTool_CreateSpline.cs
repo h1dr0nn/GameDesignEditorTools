@@ -6,118 +6,121 @@ using Unity.Mathematics;
 using System.Collections.Generic;
 using System.Linq;
 
-public partial class PrefabUtilityTool
+namespace h1dr0n.EditorTools
 {
-    [SerializeField] private string splineName = "SplineFromPrefabs";
-    [SerializeField] private bool splineClosed = false;
-    [SerializeField] private TangentMode splineTangentMode = TangentMode.AutoSmooth;
-    [SerializeField] private OrderMode splineOrderMode = OrderMode.Nearest;
-
-    public enum OrderMode { AsIs, ByName, Nearest }
-
-    private void DrawCreateSplineGUI()
+    public partial class PrefabUtilityTool
     {
-        using (new EditorGUILayout.VerticalScope("box"))
+        [SerializeField] private string splineName = "SplineFromPrefabs";
+        [SerializeField] private bool splineClosed = false;
+        [SerializeField] private TangentMode splineTangentMode = TangentMode.AutoSmooth;
+        [SerializeField] private OrderMode splineOrderMode = OrderMode.Nearest;
+
+        public enum OrderMode { AsIs, ByName, Nearest }
+
+        private void DrawCreateSplineGUI()
         {
-            EditorGUILayout.LabelField("Create Spline From Prefabs", EditorStyles.boldLabel);
-            EditorGUILayout.HelpBox("Generate a spline based on the positions of selected prefabs in the scene.", MessageType.Info);
-
-            splineName = EditorGUILayout.TextField("Spline Name", splineName);
-            splineClosed = EditorGUILayout.Toggle("Closed", splineClosed);
-            splineTangentMode = (TangentMode)EditorGUILayout.EnumPopup("Tangent Mode", splineTangentMode);
-            splineOrderMode = (OrderMode)EditorGUILayout.EnumPopup("Order", splineOrderMode);
-
-            EditorGUILayout.Space(8);
-
-            EditorGUI.BeginDisabledGroup(prefabs == null || prefabs.Count < 2);
-            if (GUILayout.Button("Create Spline", GUILayout.Height(30)))
-                CreateSplineFromPrefabs(splineName, splineClosed, splineTangentMode, splineOrderMode);
-            EditorGUI.EndDisabledGroup();
-        }
-    }
-
-    private void CreateSplineFromPrefabs(
-        string splineName = "SplineFromPrefabs",
-        bool closed = false,
-        TangentMode tangentMode = TangentMode.AutoSmooth,
-        OrderMode orderMode = OrderMode.Nearest)
-    {
-        var points = prefabs
-            .Where(p => p != null)
-            .Select(p => p.transform)
-            .Distinct()
-            .ToList();
-
-        if (points.Count < 2)
-        {
-            EditorUtility.DisplayDialog("Not Enough Points",
-                "At least two valid prefabs are required to create a spline.", "OK");
-            return;
-        }
-
-        var orderedPoints = OrderPoints(points, orderMode);
-        var rootName = string.IsNullOrWhiteSpace(splineName) ? "SplineFromPrefabs" : splineName.Trim();
-
-        var rootGO = new GameObject(rootName);
-        Undo.RegisterCreatedObjectUndo(rootGO, "Create Spline From Prefabs");
-
-        var container = rootGO.AddComponent<SplineContainer>();
-        var spline = container.Spline;
-        spline.Clear();
-
-        foreach (var t in orderedPoints)
-        {
-            var local = (float3)rootGO.transform.InverseTransformPoint(t.position);
-            var knot = new BezierKnot(local) { Rotation = Quaternion.identity };
-            spline.Add(knot, tangentMode);
-        }
-
-        spline.Closed = closed;
-
-        Selection.activeGameObject = rootGO;
-        EditorGUIUtility.PingObject(rootGO);
-
-        Debug.Log($"[CreateSpline] ✅ Created spline '{rootName}' with {orderedPoints.Count} points.");
-
-        EditorUtility.DisplayDialog("Spline Created",
-            $"Spline Name: {rootName}\nPoints: {orderedPoints.Count}\nClosed: {closed}\nOrder: {orderMode}",
-            "OK");
-    }
-
-    private static List<Transform> OrderPoints(List<Transform> pts, OrderMode mode)
-    {
-        if (pts == null || pts.Count <= 2)
-            return pts?.ToList() ?? new List<Transform>();
-
-        if (mode == OrderMode.AsIs)
-            return pts.ToList();
-
-        if (mode == OrderMode.ByName)
-            return pts.OrderBy(t => t ? t.name : string.Empty, System.StringComparer.Ordinal).ToList();
-
-        var list = pts.ToList();
-        var ordered = new List<Transform>();
-        var current = list[0];
-        ordered.Add(current);
-        list.RemoveAt(0);
-
-        while (list.Count > 0)
-        {
-            Transform next = null;
-            float best = float.MaxValue;
-
-            foreach (var t in list)
+            using (new EditorGUILayout.VerticalScope("box"))
             {
-                float d = (t.position - current.position).sqrMagnitude;
-                if (d < best) { best = d; next = t; }
+                EditorGUILayout.LabelField("Create Spline From Prefabs", EditorStyles.boldLabel);
+                EditorGUILayout.HelpBox("Generate a spline based on the positions of selected prefabs in the scene.", MessageType.Info);
+
+                splineName = EditorGUILayout.TextField("Spline Name", splineName);
+                splineClosed = EditorGUILayout.Toggle("Closed", splineClosed);
+                splineTangentMode = (TangentMode)EditorGUILayout.EnumPopup("Tangent Mode", splineTangentMode);
+                splineOrderMode = (OrderMode)EditorGUILayout.EnumPopup("Order", splineOrderMode);
+
+                EditorGUILayout.Space(8);
+
+                EditorGUI.BeginDisabledGroup(prefabs == null || prefabs.Count < 2);
+                if (GUILayout.Button("Create Spline", GUILayout.Height(30)))
+                    CreateSplineFromPrefabs(splineName, splineClosed, splineTangentMode, splineOrderMode);
+                EditorGUI.EndDisabledGroup();
+            }
+        }
+
+        private void CreateSplineFromPrefabs(
+            string splineName = "SplineFromPrefabs",
+            bool closed = false,
+            TangentMode tangentMode = TangentMode.AutoSmooth,
+            OrderMode orderMode = OrderMode.Nearest)
+        {
+            var points = prefabs
+                .Where(p => p != null)
+                .Select(p => p.transform)
+                .Distinct()
+                .ToList();
+
+            if (points.Count < 2)
+            {
+                EditorUtility.DisplayDialog("Not Enough Points",
+                    "At least two valid prefabs are required to create a spline.", "OK");
+                return;
             }
 
-            ordered.Add(next);
-            list.Remove(next);
-            current = next;
+            var orderedPoints = OrderPoints(points, orderMode);
+            var rootName = string.IsNullOrWhiteSpace(splineName) ? "SplineFromPrefabs" : splineName.Trim();
+
+            var rootGO = new GameObject(rootName);
+            Undo.RegisterCreatedObjectUndo(rootGO, "Create Spline From Prefabs");
+
+            var container = rootGO.AddComponent<SplineContainer>();
+            var spline = container.Spline;
+            spline.Clear();
+
+            foreach (var t in orderedPoints)
+            {
+                var local = (float3)rootGO.transform.InverseTransformPoint(t.position);
+                var knot = new BezierKnot(local) { Rotation = Quaternion.identity };
+                spline.Add(knot, tangentMode);
+            }
+
+            spline.Closed = closed;
+
+            Selection.activeGameObject = rootGO;
+            EditorGUIUtility.PingObject(rootGO);
+
+            Debug.Log($"[CreateSpline] ✅ Created spline '{rootName}' with {orderedPoints.Count} points.");
+
+            EditorUtility.DisplayDialog("Spline Created",
+                $"Spline Name: {rootName}\nPoints: {orderedPoints.Count}\nClosed: {closed}\nOrder: {orderMode}",
+                "OK");
         }
 
-        return ordered;
+        private static List<Transform> OrderPoints(List<Transform> pts, OrderMode mode)
+        {
+            if (pts == null || pts.Count <= 2)
+                return pts?.ToList() ?? new List<Transform>();
+
+            if (mode == OrderMode.AsIs)
+                return pts.ToList();
+
+            if (mode == OrderMode.ByName)
+                return pts.OrderBy(t => t ? t.name : string.Empty, System.StringComparer.Ordinal).ToList();
+
+            var list = pts.ToList();
+            var ordered = new List<Transform>();
+            var current = list[0];
+            ordered.Add(current);
+            list.RemoveAt(0);
+
+            while (list.Count > 0)
+            {
+                Transform next = null;
+                float best = float.MaxValue;
+
+                foreach (var t in list)
+                {
+                    float d = (t.position - current.position).sqrMagnitude;
+                    if (d < best) { best = d; next = t; }
+                }
+
+                ordered.Add(next);
+                list.Remove(next);
+                current = next;
+            }
+
+            return ordered;
+        }
     }
 }
 #endif
