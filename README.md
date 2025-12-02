@@ -20,7 +20,7 @@ A collection of Unity Editor utilities that streamline game production: bulk ass
 2. Select **+** and choose **Add package from git URL...**.
 3. Paste the repository URL:
    ```
-   https://github.com/h1dr0nn/GameDesignEditorTools.git
+   https://github.com/h1dr0nn/GameDesignEditorTools.git#main
    ```
 4. Unity will download the package and expose the tools under **Tools/Game Design/**.
 
@@ -32,8 +32,9 @@ A collection of Unity Editor utilities that streamline game production: bulk ass
 ## Changelog
 
 ### Version 1.1.0 (2025-12-02)
-- Updated Image Utility Tool components (TextureExporter, RealESRGAN utilities, ImageAIUpscaleModule, ImageUtilityTool)
-- Improved code organization and consistency across the package
+- Added a new feature: ImageAIUpscaleModule (Upscale Image), powered by `xinntao/Real-ESRGAN`.
+- Added supporting features: TextureExporter updates, RealESRGAN utility improvements, and Image Utility Tool enhancements.
+- Enhanced code structure and improved overall consistency across the package.
 
 ## Contributing
 Please open pull requests or issues for contributions and bug reports. Keep the Unity Package structure intact and follow the project's coding standards.
