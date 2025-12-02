@@ -29,5 +29,13 @@ A collection of Unity Editor utilities that streamline game production: bulk ass
 - Drag assets from Project/Hierarchy into the window to run batch actions.
 - Save presets or shortcut lists to reuse across sessions.
 
+## Changelog
+
+### Version 1.1.0 (2025-12-02)
+- **Namespace Standardization**: All scripts now use consistent `h1dr0n.EditorTools` namespace
+  - Updated Image Utility Tool components (TextureExporter, RealESRGAN utilities, ImageAIUpscaleModule, ImageUtilityTool)
+  - Fixed namespace typo in PrefabUtilityTool_AddChildPrefab
+  - Improved code organization and consistency across the package
+
 ## Contributing
 Please open pull requests or issues for contributions and bug reports. Keep the Unity Package structure intact and follow the project's coding standards.
