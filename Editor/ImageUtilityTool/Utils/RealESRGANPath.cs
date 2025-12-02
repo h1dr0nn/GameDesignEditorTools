@@ -1,23 +1,47 @@
 using UnityEngine;
+using UnityEditor;
 using System.IO;
 
 namespace h1dr0n.EditorTools
 {
     public static class RealESRGANPath
     {
+        private const string PACKAGE_NAME = "com.h1dr0n.editortools";
+
         public static string GetBundleFolder()
         {
-            string scriptPath = GetScriptFolder();
-            return Path.Combine(scriptPath, "Bundle");
+            string packagePath = GetPackageRootPath();
+            if (string.IsNullOrEmpty(packagePath))
+                return null;
+
+            return Path.Combine(packagePath, "Editor", "ImageUtilityTool", "Utils", "Bundle");
         }
 
-        private static string GetScriptFolder()
+        private static string GetPackageRootPath()
         {
-            string[] guids = UnityEditor.AssetDatabase.FindAssets("RealESRGANPath");
-            if (guids.Length == 0) return null;
+            var packageInfo = UnityEditor.PackageManager.PackageInfo.FindForAssetPath("Packages/" + PACKAGE_NAME);
+            if (packageInfo != null)
+            {
+                return packageInfo.resolvedPath;
+            }
 
-            string assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guids[0]);
-            return Path.GetDirectoryName(assetPath);
+            string[] guids = AssetDatabase.FindAssets("t:Script RealESRGANPath");
+            if (guids.Length > 0)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(guids[0]);
+                string scriptDir = Path.GetDirectoryName(assetPath);
+                
+                if (!string.IsNullOrEmpty(scriptDir))
+                {
+                    string utilsDir = scriptDir;
+                    string imageToolDir = Path.GetDirectoryName(utilsDir);
+                    string editorDir = Path.GetDirectoryName(imageToolDir);
+                    return Path.GetDirectoryName(editorDir);
+                }
+            }
+
+            Debug.LogError("[RealESRGAN] Could not find package root path.");
+            return null;
         }
 
         public static string GetBinaryPath()
