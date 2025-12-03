@@ -15,7 +15,6 @@ namespace h1dr0n.EditorTools
 
         private enum FunctionMode
         {
-            AIUpscale,
             CompressSetting,
             CropToGrid,
             FileSizeCompress,
@@ -91,10 +90,6 @@ namespace h1dr0n.EditorTools
 
                     case FunctionMode.GradientColorFinder:
                         ImageGradientColorModule.DrawGUI(textures);
-                        break;
-
-                    case FunctionMode.AIUpscale:
-                        ImageAIUpscaleModule.DrawGUI(textures);
                         break;
 
                     default:
