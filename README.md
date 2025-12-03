@@ -32,7 +32,7 @@ A collection of Unity Editor utilities that streamline game production: bulk ass
 
 ## Changelog
 
-### Version 1.1.1 (2025-12-03)
+### Version 1.1.2 (2025-12-03)
 - **NEW**: AI Image Enhancement Tool with three modules, powered by `xinntao/Real-ESRGAN` and `nihui/waifu2x-ncnn-vulkan`:
   - **AI Upscale**: Dual-engine support with model selection
   - **AI Denoise**: Noise reduction using Waifu2x or Real-ESRGAN denoise variant
