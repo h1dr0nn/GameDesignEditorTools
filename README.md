@@ -30,25 +30,5 @@ A collection of Unity Editor utilities that streamline game production: bulk ass
 - Drag assets from Project/Hierarchy into the window to run batch actions.
 - Save presets or shortcut lists to reuse across sessions.
 
-## Changelog
-
-### Version 1.1.2 (2025-12-03)
-- **NEW**: AI Image Enhancement Tool with three modules, powered by `xinntao/Real-ESRGAN` and `nihui/waifu2x-ncnn-vulkan`:
-  - **AI Upscale**: Dual-engine support with model selection
-  - **AI Denoise**: Noise reduction using Waifu2x or Real-ESRGAN denoise variant
-  - **AI Face Enhancement**: Face restoration using Real-ESRGAN with GFPGAN
-- Refactored AI upscaling from Image Utility Tool into dedicated enhancement tool
-- Added PathResolver for centralized binary management
-- Added engine abstraction layer (RealESRGANEngine, Waifu2xEngine)
-- Improved overall architecture and separation of concerns
-
-### Version 1.1.0 (2025-12-02)
-- Added a new feature: ImageAIUpscaleModule (Upscale Image), powered by `xinntao/Real-ESRGAN`.
-- Added supporting features: TextureExporter updates, RealESRGAN utility improvements, and Image Utility Tool enhancements.
-- Enhanced code structure and improved overall consistency across the package.
-
-### Version 1.0.0
-- Initial release.
-
 ## Contributing
 Please open pull requests or issues for contributions and bug reports. Keep the Unity Package structure intact and follow the project's coding standards.
